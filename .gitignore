@@ -1,0 +1,12 @@
+.env
+tistory_session.json
+logs/
+__pycache__/
+*.pyc
+*.pyo
+
+# 디버그/검수용 스크린샷 (PUBLIC 노출 방지)
+*.png
+!logo_final_orange.png
+
+.playwright-mcp/
