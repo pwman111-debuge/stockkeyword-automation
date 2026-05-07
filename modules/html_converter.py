@@ -1,8 +1,16 @@
+import os
 import re
+import sys
+from pathlib import Path
 
 from markdown_it import MarkdownIt
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config.coupang_links import get_coupang_items_for_keyword
+
 md = MarkdownIt()
+
+COUPANG_ENABLED = os.environ.get("COUPANG_ENABLED", "False").lower() == "true"
 
 WRAPPER_STYLE = (
     "font-family:'Noto Sans KR',Apple SD Gothic Neo,sans-serif;"
@@ -20,7 +28,7 @@ DISCLAIMER_STYLE = (
 )
 
 
-def convert_to_html(markdown_text: str) -> str:
+def convert_to_html(markdown_text: str, keyword: str | None = None) -> str:
     body_html = md.render(markdown_text)
 
     body_html = _style_summary_box(body_html)
@@ -31,8 +39,16 @@ def convert_to_html(markdown_text: str) -> str:
     else:
         body_html = _build_ad_slot("ad-top") + body_html
 
+    coupang_bottom = ""
+    if COUPANG_ENABLED and keyword:
+        products = get_coupang_items_for_keyword(keyword, limit=2)
+        if products:
+            coupang_bottom = _build_coupang_block(products[0])
+            if len(products) >= 2:
+                body_html = _inject_mid_coupang(body_html, _build_coupang_block(products[1]))
+
     disclaimer = _build_disclaimer()
-    body_html = body_html + _build_ad_slot("ad-bottom") + disclaimer
+    body_html = body_html + _build_ad_slot("ad-bottom") + coupang_bottom + disclaimer
 
     return f'<div style="{WRAPPER_STYLE}">{body_html}</div>'
 
@@ -64,3 +80,63 @@ def _build_disclaimer() -> str:
         "투자 손실에 대한 책임은 투자자 본인에게 있으며, 투자 결정 전 전문가 상담을 권장합니다."
         "</p>"
     )
+
+
+def _build_coupang_block(product: dict) -> str:
+    notice = (
+        '<p style="font-size:13px;color:#e74c3c;font-weight:bold;margin-bottom:10px;">'
+        '* 이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.'
+        '</p>'
+    )
+
+    if product.get("html_snippet"):
+        desc_html = (
+            f'<p style="font-size:14px;color:#444;margin:6px 0 12px 0;line-height:1.6;">'
+            f'<strong>{product["name"]}</strong> — {product["desc"]}'
+            f'</p>'
+        )
+        return (
+            '<div style="border-top:1px solid #eee;margin-top:32px;padding-top:18px;">'
+            f'{notice}{desc_html}{product["html_snippet"]}'
+            '</div>'
+        )
+
+    image_html = ""
+    if product.get("image_url"):
+        image_html = (
+            f'<img src="{product["image_url"]}" alt="{product["name"]}" '
+            'style="width:80px;height:160px;object-fit:cover;'
+            'border-radius:4px;flex-shrink:0;">'
+        )
+    text_block = (
+        f'<strong style="font-size:15px;display:block;margin-bottom:4px;">{product["name"]}</strong>'
+        f'<span style="font-size:13px;color:#666;display:block;margin-bottom:8px;">{product["desc"]}</span>'
+        '<span style="font-size:11px;color:#e74c3c;">COUPANG</span>'
+    )
+    padding = "12px" if image_html else "0"
+    inner = f'{image_html}<div style="padding-left:{padding}">{text_block}</div>'
+    return (
+        '<div style="border-top:1px solid #eee;margin-top:32px;padding-top:18px;">'
+        f'{notice}'
+        f'<a href="{product["url"]}" target="_blank" rel="noopener sponsored" referrerpolicy="unsafe-url" '
+        'style="display:flex;align-items:center;background:#fff;border:1px solid #e0e0e0;'
+        'border-radius:8px;padding:16px 20px;text-decoration:none;color:#333;max-width:420px;">'
+        f'{inner}'
+        '</a>'
+        '</div>'
+    )
+
+
+def _inject_mid_coupang(html: str, card_html: str) -> str:
+    positions = []
+    start = 0
+    while True:
+        pos = html.find("<h2", start)
+        if pos == -1:
+            break
+        positions.append(pos)
+        start = pos + 1
+    if len(positions) < 2:
+        return html
+    target = positions[len(positions) // 2]
+    return html[:target] + card_html + html[target:]

@@ -29,7 +29,7 @@ def run_once(trend: dict, dry_run: bool = False) -> dict | None:
     print(f"  제목: {content['title']}")
     print(f"  본문: {len(content['markdown'])}자")
 
-    html = convert_to_html(content["markdown"])
+    html = convert_to_html(content["markdown"], keyword=keyword)
 
     if dry_run:
         print("  [dry-run] 발행 건너뜀")
