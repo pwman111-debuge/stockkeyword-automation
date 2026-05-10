@@ -43,14 +43,12 @@ def post_to_linkedin(summary: str, post_url: str) -> bool:
         return False
 
 
-LOGO_URL = "https://tistory1.daumcdn.net/tistory/7681604/attach/44954c97172a4fc2b9e92b4bcf7764cd"
+LOGO_PATH = Path(__file__).parent.parent / "config" / "profile.jpg"
 
 
 def _upload_logo(token: str, person_urn: str) -> str | None:
     try:
-        req = urllib.request.Request(LOGO_URL, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as r:
-            image_bytes = r.read()
+        image_bytes = LOGO_PATH.read_bytes()
         return _upload_image(token, person_urn, image_bytes)
     except Exception as e:
         print(f"  [LinkedIn] 로고 업로드 실패: {e}")

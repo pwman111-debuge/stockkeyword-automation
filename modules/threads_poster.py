@@ -69,21 +69,14 @@ def _refresh_token(token: str) -> str:
 
 
 def _publish(user_id: str, token: str, text: str) -> str:
-    image_url = os.environ.get("THREADS_OG_IMAGE_URL", "")
+    image_url = "https://raw.githubusercontent.com/pwman111-debuge/solo-founder/master/tistory-automation/config/profile.jpg"
 
-    if image_url:
-        params1 = {
-            "media_type": "IMAGE",
-            "image_url": image_url,
-            "text": text,
-            "access_token": token,
-        }
-    else:
-        params1 = {
-            "media_type": "TEXT",
-            "text": text,
-            "access_token": token,
-        }
+    params1 = {
+        "media_type": "IMAGE",
+        "image_url": image_url,
+        "text": text,
+        "access_token": token,
+    }
 
     url1 = f"https://graph.threads.net/v1.0/{user_id}/threads"
     data1 = urllib.parse.urlencode(params1).encode("utf-8")
