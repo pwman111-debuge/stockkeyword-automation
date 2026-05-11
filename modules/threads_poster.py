@@ -34,11 +34,12 @@ def post_to_threads(summary: str, post_url: str) -> bool:
             post_id = _publish(user_id, token, text)
             return bool(post_id)
         except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
             if e.code >= 500 and attempt < 2:
                 print(f"  [Threads] HTTP {e.code} -- 15초 후 재시도 ({attempt + 1}/2)")
                 time.sleep(15)
                 continue
-            print(f"  [Threads] 포스팅 실패: {e}")
+            print(f"  [Threads] 포스팅 실패: HTTP {e.code} {body}")
             return False
         except Exception as e:
             print(f"  [Threads] 포스팅 실패: {e}")
@@ -70,25 +71,40 @@ def _refresh_token(token: str) -> str:
 
 def _publish(user_id: str, token: str, text: str) -> str:
     image_url = "https://raw.githubusercontent.com/pwman111-debuge/solo-founder/master/tistory-automation/config/profile.jpg"
+    url1 = f"https://graph.threads.net/v1.0/{user_id}/threads"
 
-    params1 = {
+    creation_id = None
+    params_image = {
         "media_type": "IMAGE",
         "image_url": image_url,
         "text": text,
         "access_token": token,
     }
+    data_image = urllib.parse.urlencode(params_image).encode("utf-8")
+    req_image = urllib.request.Request(url1, data=data_image, method="POST")
+    req_image.add_header("Content-Type", "application/x-www-form-urlencoded")
+    try:
+        with urllib.request.urlopen(req_image) as r:
+            result_image = json.loads(r.read().decode("utf-8"))
+        creation_id = result_image.get("id")
+    except urllib.error.HTTPError:
+        pass
 
-    url1 = f"https://graph.threads.net/v1.0/{user_id}/threads"
-    data1 = urllib.parse.urlencode(params1).encode("utf-8")
-    req1 = urllib.request.Request(url1, data=data1, method="POST")
-    req1.add_header("Content-Type", "application/x-www-form-urlencoded")
-
-    with urllib.request.urlopen(req1) as r:
-        result1 = json.loads(r.read().decode("utf-8"))
-
-    creation_id = result1.get("id")
     if not creation_id:
-        raise RuntimeError(f"컨테이너 생성 실패: {result1}")
+        params1 = {
+            "media_type": "TEXT",
+            "text": text,
+            "access_token": token,
+        }
+        data1 = urllib.parse.urlencode(params1).encode("utf-8")
+        req1 = urllib.request.Request(url1, data=data1, method="POST")
+        req1.add_header("Content-Type", "application/x-www-form-urlencoded")
+        with urllib.request.urlopen(req1) as r:
+            result1 = json.loads(r.read().decode("utf-8"))
+        creation_id = result1.get("id")
+
+    if not creation_id:
+        raise RuntimeError("컨테이너 생성 실패")
 
     time.sleep(2)
 
