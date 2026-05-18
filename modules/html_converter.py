@@ -27,6 +27,12 @@ DISCLAIMER_STYLE = (
     "margin-top:48px;padding-top:12px;"
 )
 
+COUPANG_TOP_NOTICE_STYLE = (
+    "font-size:14px;font-weight:bold;color:#c0392b;"
+    "background:#fff3cd;border:1px solid #f0ad4e;border-radius:4px;"
+    "padding:12px 16px;margin-bottom:24px;display:block;"
+)
+
 
 def convert_to_html(markdown_text: str, keyword: str | None = None) -> str:
     body_html = md.render(markdown_text)
@@ -50,7 +56,12 @@ def convert_to_html(markdown_text: str, keyword: str | None = None) -> str:
     disclaimer = _build_disclaimer()
     body_html = body_html + _build_ad_slot("ad-bottom") + coupang_bottom + disclaimer
 
-    return f'<div style="{WRAPPER_STYLE}">{body_html}</div>'
+    top_notice = (
+        f'<p style="{COUPANG_TOP_NOTICE_STYLE}">'
+        "[광고] 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다."
+        "</p>"
+    )
+    return f'<div style="{WRAPPER_STYLE}">{top_notice}{body_html}</div>'
 
 
 def _style_summary_box(html: str) -> str:
